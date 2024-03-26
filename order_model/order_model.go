@@ -34,7 +34,7 @@ type OrderPayStatus int
 
 const (
 	OrderPayStatus_None    OrderPayStatus = 0 // 未支付
-	OrderPayStatus_Success OrderPayStatus = 0 // 支付完成
+	OrderPayStatus_Success OrderPayStatus = 1 // 支付完成
 )
 
 // 订单数据

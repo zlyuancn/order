@@ -9,6 +9,7 @@ require (
 	github.com/zly-app/component/pulsar-producer v0.0.0-20231026093728-9994f4b941d3
 	github.com/zly-app/component/redis v0.0.0-20231026093728-9994f4b941d3
 	github.com/zly-app/component/sqlx v0.0.0-20231026093728-9994f4b941d3
+	github.com/zly-app/service/pulsar-consume v0.0.0-20240326021942-87619423e392
 	github.com/zly-app/zapp v1.3.10
 	go.uber.org/zap v1.27.0
 )

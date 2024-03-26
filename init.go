@@ -1,6 +1,8 @@
 package order
 
 import (
+	"context"
+
 	"github.com/zly-app/zapp"
 	"github.com/zly-app/zapp/core"
 	"github.com/zly-app/zapp/handler"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/zlyuancn/order/client"
 	"github.com/zlyuancn/order/conf"
+	"github.com/zlyuancn/order/mq"
 )
 
 func init() {
@@ -18,8 +21,13 @@ func init() {
 		}
 		conf.Conf.Check()
 		client.Init(app)
+		mq.Init(app, func(ctx context.Context, oid, uid string) error {
+			_, _, err = Order.forward(ctx, oid, uid, true)
+			return err
+		})
 	})
-	zapp.AddHandler(zapp.BeforeExitHandler, func(app core.IApp, handlerType handler.HandlerType) {
-		client.Close(app)
+	zapp.AddHandler(zapp.AfterExitHandler, func(app core.IApp, handlerType handler.HandlerType) {
+		mq.Close()
+		client.Close()
 	})
 }

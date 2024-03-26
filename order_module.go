@@ -5,17 +5,15 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/bytedance/sonic"
-	pulsar_producer "github.com/zly-app/component/pulsar-producer"
 	"github.com/zly-app/zapp/logger"
 	"go.uber.org/zap"
 
-	"github.com/zlyuancn/order/client"
 	"github.com/zlyuancn/order/conf"
 	"github.com/zlyuancn/order/dao"
+	"github.com/zlyuancn/order/mq"
 	"github.com/zlyuancn/order/order_model"
 )
 
@@ -104,23 +102,7 @@ func (o orderCli) SendCompensationSignal(ctx context.Context, orderID, uid strin
 		Uid:     uid,
 	}
 
-	payload, err := sonic.Marshal(orderMsg)
-	if err != nil {
-		return err
-	}
-
-	switch conf.Conf.MQType {
-	case conf.MQType_Pulsar:
-		msg := &pulsar_producer.ProducerMessage{
-			Payload:      payload,
-			DeliverAfter: time.Duration(conf.Conf.CompensationDelayTime) * time.Second,
-		}
-		_, err = client.PulsarProducer.Send(ctx, msg)
-	default:
-		logger.Log.Error(ctx, "order config err. Unsupported MQType", zap.String("MQType", conf.Conf.MQType))
-		return fmt.Errorf("order config err. Unsupported MQType: %v", conf.Conf.MQType)
-	}
-
+	err := mq.Send(ctx, orderMsg)
 	if err != nil {
 		logger.Log.Error(ctx, "CreateOrder Produce Compensation Mq msg err",
 			zap.String("orderID", orderID),
@@ -135,7 +117,7 @@ func (o orderCli) SendCompensationSignal(ctx context.Context, orderID, uid strin
 // 订单操作锁, 用于防止多线程操作订单, 比如mq重复同时消费
 func (o orderCli) orderDBLock(ctx context.Context, orderID string) (
 	unlock func(ctx context.Context), ok bool, err error) {
-	key := orderID + order_model.RedisOrderLockOP
+	key := order_model.RedisOrderLockOP + orderID
 	expireTime := conf.Conf.OrderLockDBExpire
 	un, ok, err := dao.SetRedisLock(ctx, key, expireTime)
 	if !ok || err != nil {
@@ -483,25 +465,27 @@ func (o orderCli) UpdateOrderStatus(ctx context.Context, orderID, uid string, ex
 
 // 根据用户订单号生成单号
 func (o orderCli) GenOIDByUserOID(orderType order_model.OrderType, uid, userOrderID string) string {
-	return fmt.Sprintf("order-c-%d-%s-%s", orderType, uid, userOrderID)
+	shard := dao.GenShard(uid)
+	return fmt.Sprintf("order-uoid-%d-%s-%s-%s", orderType, shard, uid, userOrderID)
 }
 
 // 根据第三方订单号生成单号
 func (o orderCli) GenOIDByThirdPayOID(orderType order_model.OrderType, uid, thirdPayOid string) string {
-	return fmt.Sprintf("order-third-%d-%s-%s", orderType, uid, thirdPayOid)
+	shard := dao.GenShard(uid)
+	return fmt.Sprintf("order-third-%d-%s-%s-%s", orderType, shard, uid, thirdPayOid)
 }
 
 // 生成订单号
-func (o orderCli) GenOID(ctx context.Context, orderType order_model.OrderType) (string, error) {
-	shard := rand.Int31n(conf.Conf.OrderIDGeneratorShardNums) // 防止热key
-	key := fmt.Sprintf("%d-%d%s", shard, orderType, order_model.RedisOrderSeqNoIncr)
-	v, err := dao.RedisIncrBy(ctx, key, 1)
+func (o orderCli) GenOID(ctx context.Context, orderType order_model.OrderType, uid string) (string, error) {
+	shard := dao.GenShard(uid)
+	key := fmt.Sprintf("%s:%d-%s", order_model.RedisOrderSeqNoIncr, orderType, shard)
+	incrV, err := dao.RedisIncrBy(ctx, key, 1)
 	if err != nil {
 		logger.Log.Error(ctx, "order GenOrderID err",
 			zap.Error(err),
 		)
 		return "", err
 	}
-	orderID := fmt.Sprintf("order-s-%d-%d-%d-%d", orderType, shard, time.Now().Unix(), v)
+	orderID := fmt.Sprintf("order-sgen-%d-%s-%d-%d", orderType, shard, incrV, time.Now().Unix())
 	return orderID, nil
 }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	"time"
 
 	"github.com/didi/gendry/builder"
 	"github.com/spf13/cast"
@@ -21,11 +20,14 @@ import (
 var (
 	// Dao 对外暴露实例
 	Dao = func(uid string) RPC {
-		shardID := crc32.ChecksumIEEE([]byte(uid)) % conf.Conf.TableShardNums
 		return &impl{
-			tabName: TableName + cast.ToString(shardID),
+			tabName: TableName + GenShard(uid),
 			uid:     uid,
 		}
+	}
+	GenShard = func(uid string) string {
+		shardID := crc32.ChecksumIEEE([]byte(uid)) % conf.Conf.TableShardNums
+		return cast.ToString(shardID)
 	}
 )
 
@@ -238,8 +240,4 @@ type Model struct {
 	Uid    string `db:"uid"`    // 唯一标识一个用户
 	Extend string `db:"extend"` // 和o_type相关的数据
 	Remark string `db:"remark"` // 备注
-
-	Ctime      time.Time `db:"ctime"`
-	Utime      time.Time `db:"utime"`
-	UpdateNums uint      `db:"update_nums"` //更新次数, 可防止utime相同时的异常
 }
