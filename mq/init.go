@@ -35,8 +35,8 @@ func Init(app core.IApp, compensationProcess CompensationProcess) {
 	case conf.MQType_Pulsar:
 		pulsarProducerCreator = pulsar_producer.NewProducerCreator(app)
 		PulsarProducer = pulsarProducerCreator.GetPulsarProducer(conf.Conf.MQProducerName)
-		pulsar_consume.RegistryHandler(conf.Conf.MQConsumeName, func(ctx *pulsar_consume.Context) error {
-			return consumeProcess(ctx.Ctx, ctx.Msg.Payload(), ctx.Msg.PublishTime())
+		pulsar_consume.RegistryHandler(conf.Conf.MQConsumeName, func(ctx context.Context, msg pulsar_consume.Message) error {
+			return consumeProcess(ctx, msg.Payload(), msg.PublishTime())
 		})
 	}
 }

@@ -6,10 +6,10 @@ require (
 	github.com/bytedance/sonic v1.11.1
 	github.com/didi/gendry v1.8.2
 	github.com/spf13/cast v1.3.1
-	github.com/zly-app/component/pulsar-producer v0.0.0-20240403123708-1af67a735ba5
+	github.com/zly-app/component/pulsar-producer v0.0.0-20240408091045-7b3960c82f8e
 	github.com/zly-app/component/redis v0.0.0-20231026093728-9994f4b941d3
-	github.com/zly-app/component/sqlx v0.0.0-20231026093728-9994f4b941d3
-	github.com/zly-app/service/pulsar-consume v0.0.0-20240326021942-87619423e392
+	github.com/zly-app/component/sqlx v0.0.0-20240408091045-7b3960c82f8e
+	github.com/zly-app/service/pulsar-consume v0.0.0-20240408015448-7bb3085de7d5
 	github.com/zly-app/zapp v1.3.10
 	go.uber.org/zap v1.27.0
 )

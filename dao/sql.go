@@ -106,7 +106,7 @@ func (i *impl) GetOne(ctx context.Context, orderID string) (*Model, error) {
 		return nil, err
 	}
 	var ret = &Model{}
-	err = client.SqlxClient.QueryToStruct(ctx, ret, cond, vals...)
+	err = client.SqlxClient.FindOne(ctx, ret, cond, vals...)
 	if nil != err {
 		if err != sql.ErrNoRows {
 			logger.Log.Error(ctx, "order GetOne err",
