@@ -18,7 +18,7 @@ var (
 
 func Init(app core.IApp) {
 	sqlxCreator = sqlx.NewSqlx(app)
-	SqlxClient = sqlxCreator.GetSqlx(conf.Conf.DBName)
+	SqlxClient = sqlxCreator.GetSqlx(conf.Conf.SqlxName)
 
 	redisCreator = redis.NewRedisCreator(app)
 	RedisClient = redisCreator.GetRedis(conf.Conf.RedisName)

@@ -557,12 +557,13 @@ github.com/zly-app/component/redis v0.0.0-20231026093728-9994f4b941d3 h1:fKpmkeE
 github.com/zly-app/component/redis v0.0.0-20231026093728-9994f4b941d3/go.mod h1:pFOGw975Qkzihjyobr8UlHna+94H0JJv2Uo8pgBNN4A=
 github.com/zly-app/component/sqlx v0.0.0-20240408091045-7b3960c82f8e h1:+ZEtLuSTeiB6lSwJTVPmVn68qoy1dS3Sv6DWCF9cLDA=
 github.com/zly-app/component/sqlx v0.0.0-20240408091045-7b3960c82f8e/go.mod h1:uVxXxrOwe33O9wNIVQQWT91OwGiBN6NHdDcZbA97UVw=
-github.com/zly-app/service/pulsar-consume v0.0.0-20240408015448-7bb3085de7d5 h1:Ye472+IsQHOrf69CdZwIeyvVObfC2XKL02R0m4q2opo=
-github.com/zly-app/service/pulsar-consume v0.0.0-20240408015448-7bb3085de7d5/go.mod h1:FYRwlVGrpSbj7IpctqXN/sIsqQymiDDA08lKuKrBKLI=
+github.com/zly-app/service/pulsar-consume v0.0.0-20240409084509-c16f2982a8b1 h1:VqNWY8TrcMRBFIKRZHCK6hyzK3mJMYMG+YTQa4r/Qr8=
+github.com/zly-app/service/pulsar-consume v0.0.0-20240409084509-c16f2982a8b1/go.mod h1:FYRwlVGrpSbj7IpctqXN/sIsqQymiDDA08lKuKrBKLI=
 github.com/zly-app/zapp v1.3.7-0.20231023123435-a4a2bb693891/go.mod h1:xxAyACsD1k2et8PsHV4j40HqVUQQ55sbHEt1J9jIVjU=
 github.com/zly-app/zapp v1.3.7/go.mod h1:xxAyACsD1k2et8PsHV4j40HqVUQQ55sbHEt1J9jIVjU=
-github.com/zly-app/zapp v1.3.10 h1:e+b0Qz0RsZTeouJTYCnhWDHcmxLwGpR5YWSdtsBdnYE=
 github.com/zly-app/zapp v1.3.10/go.mod h1:HmrE9OKTwr36gcv+Zy0fSTJzx+WsUF3JEcWSW3YJTwg=
+github.com/zly-app/zapp v1.3.11-0.20240409084107-8d4ba347d3e6 h1:RpMA/df2a9JZ8bK7Q3xoQnf2FSMNFLxARu6z+fUPbk0=
+github.com/zly-app/zapp v1.3.11-0.20240409084107-8d4ba347d3e6/go.mod h1:HmrE9OKTwr36gcv+Zy0fSTJzx+WsUF3JEcWSW3YJTwg=
 github.com/zlyuancn/zretry v0.0.0-20220514032503-d78bfd22a441 h1:Sw0KI54iN5+zLL74vWx9R1o9S1yWc+f3oRKOjKrMCqA=
 github.com/zlyuancn/zretry v0.0.0-20220514032503-d78bfd22a441/go.mod h1:nXpt3JELMAirMyc5KExlSX96ixpohjHkxHpJlhqRnUU=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

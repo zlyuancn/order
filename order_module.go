@@ -220,10 +220,6 @@ func (o orderCli) forward(ctx context.Context, orderID, uid string, isMq bool) (
 
 	// 检查状态
 	if status != order_model.OrderStatus_Forwarding {
-		logger.Log.Warn(ctx, "Order Forward order not is create status",
-			zap.Any("order", order),
-			zap.Any("status", status),
-		)
 		if status == order_model.OrderStatus_Finish {
 			err := ob.ForwardFinishCallback(ctx, order, extend)
 			if err != nil {
@@ -236,6 +232,10 @@ func (o orderCli) forward(ctx context.Context, orderID, uid string, isMq bool) (
 				return nil, 0, err
 			}
 		} else {
+			logger.Log.Warn(ctx, "Order Forward order not is create status",
+				zap.Any("order", order),
+				zap.Any("status", status),
+			)
 			err := ob.ForwardAbnormalCallback(ctx, order, extend, status)
 			if err != nil {
 				logger.Log.Error(ctx, "Order forward call ForwardAbnormalCallback err",

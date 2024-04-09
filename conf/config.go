@@ -20,9 +20,8 @@ const (
 	defMQType                    = MQType_Pulsar
 	defMQProducerName            = "order"
 	defAllowMqCompensation       = false
-	defCompensationDelayTime     = 60
+	defCompensationDelayTime     = 20
 	defMQConsumeName             = "order"
-	defCompensationMQMsgLifeTime = 3600
 )
 
 const (
@@ -30,7 +29,7 @@ const (
 )
 
 var Conf = Config{
-	DBName:         defDBName,
+	SqlxName:       defDBName,
 	TableShardNums: defTableShardNums,
 
 	RedisName:                     defRedisName,
@@ -42,14 +41,13 @@ var Conf = Config{
 	AllowMqCompensation:       defAllowMqCompensation,
 	CompensationDelayTime:     defCompensationDelayTime,
 	MQConsumeName:             defMQConsumeName,
-	CompensationMQMsgLifeTime: defCompensationMQMsgLifeTime,
 }
 
 type Config struct {
-	DBName         string // 数据库名
+	SqlxName       string // sqlx组件名
 	TableShardNums uint32 // 表分片数量
 
-	RedisName                     string // redis名
+	RedisName                     string // redis组件名
 	OrderLockDBExpire             int    // 订单锁有效时间, 单位秒
 	OrderUnlockDBLimitProcessTime int    // 订单处理在多少时间内完成才会主动解锁, 单位秒
 
@@ -58,12 +56,11 @@ type Config struct {
 	AllowMqCompensation       bool   // 是否允许mq补偿, 如果为false, 将不会启动mq补偿消费进程, 代码中的提交mq补偿会报错, 且不会启动mq补偿消费者
 	CompensationDelayTime     int64  // mq补偿延迟时间, 单位秒
 	MQConsumeName             string // mq消费者名
-	CompensationMQMsgLifeTime int64  // mq消息如果存活超过这个时间, 在失败后不会再重试了. 单位秒
 }
 
 func (conf *Config) Check() {
-	if conf.DBName == "" {
-		conf.DBName = defDBName
+	if conf.SqlxName == "" {
+		conf.SqlxName = defDBName
 	}
 	if conf.TableShardNums < 1 {
 		conf.TableShardNums = defTableShardNums
@@ -96,8 +93,5 @@ func (conf *Config) Check() {
 	}
 	if conf.MQConsumeName == "" {
 		conf.MQConsumeName = defMQConsumeName
-	}
-	if conf.CompensationMQMsgLifeTime < 1 {
-		conf.CompensationMQMsgLifeTime = defCompensationMQMsgLifeTime
 	}
 }

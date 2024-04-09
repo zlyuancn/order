@@ -100,15 +100,5 @@ func consumeProcess(ctx context.Context, payload []byte, msgProductionTime time.
 		zap.Any("orderMsg", orderMsg),
 		zap.Error(err),
 	)
-
-	// 检查消息存活时间超过规定时间则放弃
-	msgLifeTime := time.Now().Unix() - msgProductionTime.Unix()
-	if msgLifeTime >= conf.Conf.CompensationMQMsgLifeTime {
-		logger.Log.Warn(ctx, "Order consumeProcess msg reach life time",
-			zap.String("msgLifeTime", (time.Duration(msgLifeTime)*time.Second).String()),
-			zap.Any("orderMsg", orderMsg),
-		)
-		return nil
-	}
 	return err
 }
