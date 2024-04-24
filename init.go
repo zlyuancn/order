@@ -27,7 +27,10 @@ func init() {
 	zapp.AddHandler(zapp.AfterInitializeHandler, func(app core.IApp, handlerType handler.HandlerType) {
 		client.Init(app)
 		mq.Init(app, func(ctx context.Context, oid, uid string) error {
-			_, _, err := Order.forward(ctx, oid, uid, true)
+			_, _, err := Order.forwardOrderID(ctx, oid, uid, true)
+			if err == OrderBusinessCancelForwardErr {
+				return nil
+			}
 			return err
 		})
 	})

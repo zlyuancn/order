@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/bytedance/sonic"
-	"github.com/zly-app/zapp/logger"
 	"go.uber.org/zap"
+
+	"github.com/zly-app/zapp/logger"
 
 	"github.com/zlyuancn/order/conf"
 	"github.com/zlyuancn/order/dao"
@@ -160,16 +161,47 @@ func (orderCli) GetOrder(ctx context.Context, orderID, uid string) (
 }
 
 /*
+业务推进刚创建的订单
+*/
+func (o orderCli) Forward(ctx context.Context, order *order_model.Order, extend interface{}, status order_model.OrderStatus) (
+	*order_model.Order, order_model.OrderStatus, error) {
+	unlock, ok, err := o.orderDBLock(ctx, order.OrderID)
+	if err != nil {
+		logger.Log.Error(ctx, "Order ForwardOrder orderDBLock err",
+			zap.String("orderID", order.OrderID),
+			zap.String("uid", order.Uid),
+			zap.Error(err),
+		)
+		return nil, 0, err
+	}
+	if !ok {
+		logger.Log.Warn(ctx, "Order ForwardOrder orderDBLock is failed",
+			zap.String("orderID", order.OrderID),
+			zap.String("uid", order.Uid),
+		)
+		return nil, 0, fmt.Errorf("Order Forward orderDBLock is failed")
+	}
+	defer unlock(ctx)
+
+	// 获取业务
+	ob, ok := o.GetOrderBusiness(order.OrderType)
+	if !ok {
+		return nil, 0, fmt.Errorf("Order forward OrderType %v not found OrderBusiness", order.OrderType)
+	}
+	return o.forwardOrder(ctx, ob, order, extend, status)
+}
+
+/*
 业务推进
 
 	status 当前订单状态
 */
-func (o orderCli) Forward(ctx context.Context, orderID, uid string) (
+func (o orderCli) ForwardOrderID(ctx context.Context, orderID, uid string) (
 	*order_model.Order, order_model.OrderStatus, error) {
-	return o.forward(ctx, orderID, uid, false)
+	return o.forwardOrderID(ctx, orderID, uid, false)
 }
 
-func (o orderCli) forward(ctx context.Context, orderID, uid string, isMq bool) (
+func (o orderCli) forwardOrderID(ctx context.Context, orderID, uid string, isMq bool) (
 	*order_model.Order, order_model.OrderStatus, error) {
 	unlock, ok, err := o.orderDBLock(ctx, orderID)
 	if err != nil {
@@ -212,12 +244,16 @@ func (o orderCli) forward(ctx context.Context, orderID, uid string, isMq bool) (
 	// 解析业务扩展数据
 	extend := ob.NewExtendStruct(ctx)
 	if extend != nil && extendText != "" {
-		err = sonic.UnmarshalString(extendText, extend)
+		err := sonic.UnmarshalString(extendText, extend)
 		if err != nil {
 			return nil, 0, fmt.Errorf("Order forward Unmarshal extend err. orderID=%v, err=%v", order.OrderID, err)
 		}
 	}
+	return o.forwardOrder(ctx, ob, order, extend, status)
+}
 
+func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness, order *order_model.Order, extend interface{}, status order_model.OrderStatus) (
+	*order_model.Order, order_model.OrderStatus, error) {
 	// 检查状态
 	if status != order_model.OrderStatus_Forwarding {
 		if status == order_model.OrderStatus_Finish {
@@ -262,7 +298,7 @@ func (o orderCli) forward(ctx context.Context, orderID, uid string, isMq bool) (
 		return nil, 0, err
 	}
 	if cancelCause != "" {
-		logger.Log.Error(ctx, "Order forward call CanForward got cancel forward",
+		logger.Log.Warn(ctx, "Order forward call CanForward got cancel forward",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Int("status", int(status)),
@@ -295,7 +331,7 @@ func (o orderCli) forward(ctx context.Context, orderID, uid string, isMq bool) (
 	}
 
 	// 扣款
-	ok, err = o.deductBalance(ctx, order, extend)
+	ok, err := o.deductBalance(ctx, order, extend)
 	if err != nil {
 		logger.Log.Error(ctx, "Order forward DeductBalance err",
 			zap.Any("order", order),
