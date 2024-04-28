@@ -17,11 +17,10 @@
 ## mysql
 
 1. 首先准备一个库名为 `order` 的mysql库. 这个库名可以根据sqlx组件配置的连接db库修改
-2. 创建订单的分表, 默认为2个分表, 分表索引从0开始, 可以通过配置`TableShardNums`修改.
+2. 创建订单的分表, 默认为2个分表, 分表索引从0开始, 可以通过配置`TableShardNums`修改. 一开始应该设计好分表数量, 确认好后暂不支持修改分表数量, 如果你不知道设置为多少就设为1000.
    1. 构建分表的工具为 [stf](https://github.com/zlyuancn/stt/tree/master/stf)
    2. 订单系统的分表文件在[这里](https://github.com/zlyuancn/order/tree/master/db_table/order_.sql)
    3. 在[这里](https://github.com/zlyuancn/order/tree/master/db_table/order_.out.sql)可以看到已经生成好了2个分表的sql文件, 可以直接导入.
-
 
 ---
 
