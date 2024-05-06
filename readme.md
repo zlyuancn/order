@@ -24,13 +24,19 @@ order 是一个订单系统, 可用于任何基于订单的业务, 比如商品�
 - [ ] 混合支付
 - [x] 预付款下单
 - [x] 先下单后付款
-- 
+
+
 - [x] 业务数据嵌入到订单
+
 
 - [ ] 订单变动流水记录
 
+
 - [x] 并发支持
 - [x] 订单可重入
+
+
+- [ ] metrics上报
 
 ---
 
@@ -227,11 +233,11 @@ order:
 
 # 依赖组件
 components:
-  sqlx:
-    order:
+  sqlx: # 参考 https://github.com/zly-app/component/tree/master/sqlx
+    score:
       # ...
-  redis:
-    order:
+  redis: # 参考 https://github.com/zly-app/component/tree/master/redis
+    score:
       # ...
   pulsar-producer:
     order:
