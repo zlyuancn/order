@@ -6,11 +6,11 @@ require (
 	github.com/bytedance/sonic v1.11.1
 	github.com/didi/gendry v1.8.2
 	github.com/spf13/cast v1.3.1
-	github.com/zly-app/component/pulsar-producer v0.0.0-20240408091045-7b3960c82f8e
-	github.com/zly-app/component/redis v0.0.0-20231026093728-9994f4b941d3
-	github.com/zly-app/component/sqlx v0.0.0-20240408091045-7b3960c82f8e
+	github.com/zly-app/component/pulsar-producer v0.0.0-20240730111157-8bb3372a7bfe
+	github.com/zly-app/component/redis v0.0.0-20240730111157-8bb3372a7bfe
+	github.com/zly-app/component/sqlx v0.0.0-20240730111157-8bb3372a7bfe
 	github.com/zly-app/service/pulsar-consume v0.0.0-20240409084509-c16f2982a8b1
-	github.com/zly-app/zapp v1.3.11-0.20240409084107-8d4ba347d3e6
+	github.com/zly-app/zapp v1.3.17
 	go.uber.org/zap v1.27.0
 )
 
@@ -85,7 +85,6 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
-	github.com/zlyuancn/zretry v0.0.0-20220514032503-d78bfd22a441 // indirect
 	go.opentelemetry.io/otel v1.16.0 // indirect
 	go.opentelemetry.io/otel/metric v1.16.0 // indirect
 	go.opentelemetry.io/otel/trace v1.16.0 // indirect
@@ -93,13 +92,13 @@ require (
 	go.uber.org/automaxprocs v1.5.1 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.17.0 // indirect
+	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/mod v0.17.0 // indirect
+	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect

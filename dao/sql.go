@@ -64,7 +64,7 @@ func (i *impl) CreateOneModel(ctx context.Context, v *Model) (int64, error) {
 		return 0, err
 	}
 
-	result, err := client.SqlxClient.Exec(ctx, cond, vals...)
+	result, err := client.GetSqlxClient().Exec(ctx, cond, vals...)
 	if err != nil {
 		logger.Log.Error(ctx, "order CreateOneModel err",
 			zap.String("cond", cond),
@@ -106,7 +106,7 @@ func (i *impl) GetOne(ctx context.Context, orderID string) (*Model, error) {
 		return nil, err
 	}
 	var ret = &Model{}
-	err = client.SqlxClient.FindOne(ctx, ret, cond, vals...)
+	err = client.GetSqlxClient().FindOne(ctx, ret, cond, vals...)
 	if nil != err {
 		if err != sql.ErrNoRows {
 			logger.Log.Error(ctx, "order GetOne err",
@@ -135,7 +135,7 @@ func (i *impl) UpdateOrderStatus(ctx context.Context, orderID string, extend str
 	cond += `, remark=?, update_nums=update_nums + 1, utime=now() where oid=? limit 1;`
 	vals = append(vals, remark, orderID)
 
-	result, err := client.SqlxClient.Exec(ctx, cond, vals...)
+	result, err := client.GetSqlxClient().Exec(ctx, cond, vals...)
 	if err != nil {
 		logger.Log.Error(ctx, "order updateOrderStatus err",
 			zap.String("cond", cond),
@@ -179,7 +179,7 @@ func (i *impl) SetPayStatus(ctx context.Context, orderID, thirdPayOid string, pa
 		return errors.New("order SetPayStatus args err. orderID and thirdPayOid is empty")
 	}
 
-	result, err := client.SqlxClient.Exec(ctx, cond, vals...)
+	result, err := client.GetSqlxClient().Exec(ctx, cond, vals...)
 	if err != nil {
 		logger.Log.Error(ctx, "order SetPayStatus err",
 			zap.String("cond", cond),

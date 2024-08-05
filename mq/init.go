@@ -12,13 +12,9 @@ import (
 	"github.com/zly-app/zapp/logger"
 	"go.uber.org/zap"
 
+	"github.com/zlyuancn/order/client"
 	"github.com/zlyuancn/order/conf"
 	"github.com/zlyuancn/order/order_model"
-)
-
-var (
-	pulsarProducerCreator pulsar_producer.IPulsarProducerCreator
-	PulsarProducer        pulsar_producer.IPulsarProducer
 )
 
 type CompensationProcess func(ctx context.Context, oid, uid string) error
@@ -33,22 +29,9 @@ func Init(app core.IApp, compensationProcess CompensationProcess) {
 	defCompensationProcess = compensationProcess
 	switch conf.Conf.MQType {
 	case conf.MQType_Pulsar:
-		pulsarProducerCreator = pulsar_producer.NewProducerCreator(app)
-		PulsarProducer = pulsarProducerCreator.GetPulsarProducer(conf.Conf.MQProducerName)
 		pulsar_consume.RegistryHandler(conf.Conf.MQConsumeName, func(ctx context.Context, msg pulsar_consume.Message) error {
 			return consumeProcess(ctx, msg.Payload(), msg.PublishTime())
 		})
-	}
-}
-
-func Close() {
-	if !conf.Conf.AllowMqCompensation {
-		return
-	}
-
-	switch conf.Conf.MQType {
-	case conf.MQType_Pulsar:
-		pulsarProducerCreator.Close()
 	}
 }
 
@@ -64,7 +47,7 @@ func Send(ctx context.Context, msg *order_model.OrderMqMsg) error {
 			Payload:      payload,
 			DeliverAfter: time.Duration(conf.Conf.CompensationDelayTime) * time.Second,
 		}
-		_, err = PulsarProducer.Send(ctx, msg)
+		_, err = client.GetPulsarProducer().Send(ctx, msg)
 		return err
 	}
 

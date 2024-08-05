@@ -9,7 +9,6 @@ import (
 	"github.com/zly-app/zapp/handler"
 	"go.uber.org/zap"
 
-	"github.com/zlyuancn/order/client"
 	"github.com/zlyuancn/order/conf"
 	"github.com/zlyuancn/order/mq"
 )
@@ -24,8 +23,7 @@ func init() {
 		}
 		conf.Conf.Check()
 	})
-	zapp.AddHandler(zapp.AfterInitializeHandler, func(app core.IApp, handlerType handler.HandlerType) {
-		client.Init(app)
+	zapp.AddHandler(zapp.AfterMakeService, func(app core.IApp, handlerType handler.HandlerType) {
 		mq.Init(app, func(ctx context.Context, oid, uid string) error {
 			_, _, err := Order.forwardOrderID(ctx, oid, uid, true)
 			if err == OrderBusinessCancelForwardErr {
@@ -33,9 +31,5 @@ func init() {
 			}
 			return err
 		})
-	})
-	zapp.AddHandler(zapp.AfterExitHandler, func(app core.IApp, handlerType handler.HandlerType) {
-		mq.Close()
-		client.Close()
 	})
 }

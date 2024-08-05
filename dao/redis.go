@@ -25,7 +25,7 @@ return
 func SetRedisLock(ctx context.Context, key string, expireTime int) (
 	unlock func(ctx context.Context, limitProcessTime int) (bool, error), ok bool, err error) {
 	startTime := time.Now().UnixNano()
-	ok, err = client.RedisClient.SetNX(ctx, key, 1, time.Duration(expireTime)*time.Second).Result()
+	ok, err = client.GetRedisClient().SetNX(ctx, key, 1, time.Duration(expireTime)*time.Second).Result()
 	if err != nil {
 		logger.Log.Error(ctx, "SetRedisLock error",
 			zap.String("key", key),
@@ -47,7 +47,7 @@ func SetRedisLock(ctx context.Context, key string, expireTime int) (
 			return false, nil
 		}
 
-		_, err := client.RedisClient.Del(ctx, key).Result()
+		_, err := client.GetRedisClient().Del(ctx, key).Result()
 		return true, err // 这里不判断是否真的删了key, 因为锁失效了也表示删除成功
 	}
 	return unlock, true, nil
@@ -57,6 +57,6 @@ func RedisIncrBy(ctx context.Context, key string, incr int64) (int64, error) {
 	if incr == 0 {
 		incr = 1
 	}
-	ret, err := client.RedisClient.IncrBy(ctx, key, incr).Result()
+	ret, err := client.GetRedisClient().IncrBy(ctx, key, incr).Result()
 	return ret, err
 }

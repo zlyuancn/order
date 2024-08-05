@@ -1,29 +1,21 @@
 package client
 
 import (
+	pulsar_producer "github.com/zly-app/component/pulsar-producer"
 	"github.com/zly-app/component/redis"
 	"github.com/zly-app/component/sqlx"
-	"github.com/zly-app/zapp/core"
 
 	"github.com/zlyuancn/order/conf"
 )
 
-var (
-	sqlxCreator sqlx.ISqlx
-	SqlxClient  sqlx.Client
-
-	redisCreator redis.IRedisCreator
-	RedisClient  redis.UniversalClient
-)
-
-func Init(app core.IApp) {
-	sqlxCreator = sqlx.NewSqlx(app)
-	SqlxClient = sqlxCreator.GetSqlx(conf.Conf.SqlxName)
-
-	redisCreator = redis.NewRedisCreator(app)
-	RedisClient = redisCreator.GetRedis(conf.Conf.RedisName)
+func GetSqlxClient() sqlx.Client {
+	return sqlx.GetClient(conf.Conf.SqlxName)
 }
-func Close() {
-	sqlxCreator.Close()
-	redisCreator.Close()
+
+func GetRedisClient() redis.UniversalClient {
+	return redis.GetClient(conf.Conf.RedisName)
+}
+
+func GetPulsarProducer() pulsar_producer.Client {
+	return pulsar_producer.GetClient(conf.Conf.MQProducerName)
 }
