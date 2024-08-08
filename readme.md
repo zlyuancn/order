@@ -56,7 +56,7 @@ order 是一个订单系统, 可用于任何基于订单的业务, 比如商品�
 
 ```go
 app := zapp.NewApp("zapp.test.order",
-    order.WithOrder(),
+    order.WithService(),
 )
 defer app.Exit()
 ```

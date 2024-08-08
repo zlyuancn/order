@@ -8,7 +8,7 @@ import (
 	"github.com/zlyuancn/order/conf"
 )
 
-func WithOrder() zapp.Option {
+func WithService() zapp.Option {
 	return zapp.WithCustomEnableService(func(app core.IApp, services []core.ServiceType) []core.ServiceType {
 		if !conf.Conf.AllowMqCompensation {
 			return services
