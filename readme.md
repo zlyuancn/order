@@ -220,9 +220,13 @@ end
 order:
    SqlxName: "order" # sqlx组件名
    TableShardNums: 2 # 表分片数量
+
    RedisName: "order" # redis组件名
    OrderLockDBExpire: 30 # 订单锁有效时间, 单位秒
    OrderUnlockDBLimitProcessTime: 10 # 订单处理在多少时间内完成才会主动解锁, 单位秒
+   OrderLockKeyFormat: 'order:lock:op:<order_id>' # 订单锁key格式化字符串
+   OrderSeqNoKeyFormat: 'order:seqno:<order_type>:<shard_num>' # 生成订单序列号key格式化字符串
+
    MQType: "pulsar" # mq类型. 支持 pulsar
    MQProducerName: "order" # mq生产者组件名
    AllowMqCompensation: false # 是否允许mq补偿, 如果为false, 将不会启动mq补偿消费进程, 代码中的提交mq补偿会报错, 且不会启动mq补偿消费者
@@ -238,13 +242,13 @@ components:
   redis: # 参考 https://github.com/zly-app/component/tree/master/redis
     score:
       # ...
-  pulsar-producer:
+  pulsar-producer: # 参考 https://github.com/zly-app/component/tree/master/pulsar-producer
     order:
       # ...
 
 # 依赖服务
 services:
-  pulsar-consume:
+  pulsar-consume: # 参考 https://github.com/zly-app/service/tree/master/pulsar-consume
     order:
       # ...
 ```

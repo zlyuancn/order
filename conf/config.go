@@ -16,6 +16,8 @@ const (
 	defRedisName                     = "order"
 	defOrderLockDBExpire             = 30
 	defOrderUnlockDBLimitProcessTime = 10
+	defOrderLockKeyFormat            = "order:lock:op:<order_id>"
+	defOrderSeqNoKeyFormat           = "order:seqno:<order_type>:<shard_num>"
 
 	defMQType                = MQType_Pulsar
 	defMQProducerName        = "order"
@@ -35,6 +37,8 @@ var Conf = Config{
 	RedisName:                     defRedisName,
 	OrderLockDBExpire:             defOrderLockDBExpire,
 	OrderUnlockDBLimitProcessTime: defOrderUnlockDBLimitProcessTime,
+	OrderLockKeyFormat:            defOrderLockKeyFormat,
+	OrderSeqNoKeyFormat:           defOrderSeqNoKeyFormat,
 
 	MQType:                defMQType,
 	MQProducerName:        defMQProducerName,
@@ -50,6 +54,8 @@ type Config struct {
 	RedisName                     string // redis组件名
 	OrderLockDBExpire             int    // 订单锁有效时间, 单位秒
 	OrderUnlockDBLimitProcessTime int    // 订单处理在多少时间内完成才会主动解锁, 单位秒
+	OrderLockKeyFormat            string // 订单锁key格式化字符串
+	OrderSeqNoKeyFormat           string // 生成订单序列号key格式化字符串
 
 	MQType                string // mq类型. 支持 pulsar
 	MQProducerName        string // mq生产者组件名
@@ -74,6 +80,12 @@ func (conf *Config) Check() {
 	}
 	if conf.OrderUnlockDBLimitProcessTime < 1 {
 		conf.OrderUnlockDBLimitProcessTime = defOrderUnlockDBLimitProcessTime
+	}
+	if conf.OrderLockKeyFormat == "" {
+		conf.OrderLockKeyFormat = defOrderLockKeyFormat
+	}
+	if conf.OrderSeqNoKeyFormat == "" {
+		conf.OrderSeqNoKeyFormat = defOrderSeqNoKeyFormat
 	}
 
 	if conf.MQType == "" {

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bytedance/sonic"
@@ -16,6 +18,13 @@ import (
 	"github.com/zlyuancn/order/dao"
 	"github.com/zlyuancn/order/mq"
 	"github.com/zlyuancn/order/order_model"
+)
+
+// 模板字符串
+const (
+	templateString_OrderID   = "<order_id>"
+	templateString_OrderType = "<order_type>"
+	templateString_ShardNum  = "<shard_num>"
 )
 
 var Order = orderCli{}
@@ -118,7 +127,7 @@ func (o orderCli) SendCompensationSignal(ctx context.Context, orderID, uid strin
 // 订单操作锁, 用于防止多线程操作订单, 比如mq重复同时消费
 func (o orderCli) orderDBLock(ctx context.Context, orderID string) (
 	unlock func(ctx context.Context), ok bool, err error) {
-	key := order_model.RedisOrderLockOP + orderID
+	key := o.genOrderLockKey(orderID)
 	expireTime := conf.Conf.OrderLockDBExpire
 	un, ok, err := dao.SetRedisLock(ctx, key, expireTime)
 	if !ok || err != nil {
@@ -127,6 +136,11 @@ func (o orderCli) orderDBLock(ctx context.Context, orderID string) (
 	return func(ctx context.Context) {
 		_, _ = un(ctx, conf.Conf.OrderUnlockDBLimitProcessTime)
 	}, ok, err
+}
+func (o orderCli) genOrderLockKey(orderID string) string {
+	text := conf.Conf.OrderLockKeyFormat
+	text = strings.ReplaceAll(text, templateString_OrderID, orderID)
+	return text
 }
 
 // 获取订单
@@ -514,7 +528,7 @@ func (o orderCli) GenOIDByThirdPayOID(orderType order_model.OrderType, uid, thir
 // 生成订单号
 func (o orderCli) GenOID(ctx context.Context, orderType order_model.OrderType, uid string) (string, error) {
 	shard := dao.GenShard(uid)
-	key := fmt.Sprintf("%s:%d-%s", order_model.RedisOrderSeqNoIncr, orderType, shard)
+	key := o.genOrderSeqNoKey(orderType, shard)
 	incrV, err := dao.RedisIncrBy(ctx, key, 1)
 	if err != nil {
 		logger.Log.Error(ctx, "order GenOrderID err",
@@ -524,4 +538,10 @@ func (o orderCli) GenOID(ctx context.Context, orderType order_model.OrderType, u
 	}
 	orderID := fmt.Sprintf("order-sgen-%d-%s-%d-%d", orderType, shard, incrV, time.Now().Unix())
 	return orderID, nil
+}
+func (o orderCli) genOrderSeqNoKey(orderType order_model.OrderType, shardNum string) string {
+	text := conf.Conf.OrderSeqNoKeyFormat
+	text = strings.ReplaceAll(text, templateString_OrderType, strconv.Itoa(int(orderType)))
+	text = strings.ReplaceAll(text, templateString_ShardNum, shardNum)
+	return text
 }
