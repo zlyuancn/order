@@ -25,7 +25,7 @@ func init() {
 	})
 	zapp.AddHandler(zapp.AfterMakeService, func(app core.IApp, handlerType handler.HandlerType) {
 		mq.Init(app, func(ctx context.Context, oid, uid string) error {
-			_, _, err := Order.forwardOrderID(ctx, oid, uid, true)
+			_, _, err := orderApi.forwardOrderID(ctx, oid, uid, true)
 			if err == OrderBusinessCancelForwardErr {
 				return nil
 			}

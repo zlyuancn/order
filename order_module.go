@@ -27,7 +27,7 @@ const (
 	templateString_ShardNum  = "<shard_num>"
 )
 
-var Order = orderCli{}
+var orderApi = orderCli{}
 
 type orderCli struct{}
 
@@ -41,9 +41,16 @@ type orderCli struct{}
 */
 func (o orderCli) CreateOrder(ctx context.Context, order *order_model.Order, extend interface{},
 	enableCompensation bool) error {
-	err := o.SendCompensationSignal(ctx, order.OrderID, order.Uid, enableCompensation)
-	if err != nil {
-		return err
+	if enableCompensation {
+		err := o.SendCompensationSignal(ctx, order.OrderID, order.Uid)
+		if err != nil {
+			return err
+		}
+	} else {
+		logger.Log.Warn(ctx, "order create no send mq",
+			zap.String("orderID", order.OrderID),
+			zap.String("uid", order.Uid),
+		)
 	}
 
 	v, err := o.order2DBModel(order, extend, order_model.OrderStatus_Forwarding)
@@ -88,16 +95,8 @@ func (orderCli) order2DBModel(order *order_model.Order, extend interface{}, stat
 	return v, nil
 }
 
-func (o orderCli) SendCompensationSignal(ctx context.Context, orderID, uid string,
-	enableCompensation bool) error {
-	if !enableCompensation {
-		logger.Log.Warn(ctx, "order create no send mq",
-			zap.String("orderID", orderID),
-			zap.String("uid", uid),
-		)
-		return nil
-	}
-
+// 主动发送补偿信号
+func (o orderCli) SendCompensationSignal(ctx context.Context, orderID, uid string) error {
 	if !conf.Conf.AllowMqCompensation {
 		logger.Log.Warn(ctx, "order sendMq but AllowMqCompensation is false",
 			zap.String("orderID", orderID),
@@ -176,12 +175,16 @@ func (orderCli) GetOrder(ctx context.Context, orderID, uid string) (
 
 /*
 业务推进刚创建的订单
+
+注意, 只有在同一个线程中创建的订单才能调用这个方法, 通过 GetOrder 获取到的 order 不能调用这个方法.
+否则可能会导致订单数据不一致, 因为里面涉及到锁的问题. 一旦别的线程介入了操作, 就可能导致你的 order 数据被修改了但是传入给 Forward
+的 order 仍然是旧数据
 */
-func (o orderCli) Forward(ctx context.Context, order *order_model.Order, extend interface{}, status order_model.OrderStatus) (
+func (o orderCli) Forward(ctx context.Context, order *order_model.Order, extend interface{}) (
 	*order_model.Order, order_model.OrderStatus, error) {
 	unlock, ok, err := o.orderDBLock(ctx, order.OrderID)
 	if err != nil {
-		logger.Log.Error(ctx, "Order ForwardOrder orderDBLock err",
+		logger.Log.Error(ctx, "orderApi ForwardOrder orderDBLock err",
 			zap.String("orderID", order.OrderID),
 			zap.String("uid", order.Uid),
 			zap.Error(err),
@@ -189,20 +192,20 @@ func (o orderCli) Forward(ctx context.Context, order *order_model.Order, extend 
 		return nil, 0, err
 	}
 	if !ok {
-		logger.Log.Warn(ctx, "Order ForwardOrder orderDBLock is failed",
+		logger.Log.Warn(ctx, "orderApi ForwardOrder orderDBLock is failed",
 			zap.String("orderID", order.OrderID),
 			zap.String("uid", order.Uid),
 		)
-		return nil, 0, fmt.Errorf("Order Forward orderDBLock is failed")
+		return nil, 0, fmt.Errorf("orderApi Forward orderDBLock is failed")
 	}
 	defer unlock(ctx)
 
 	// 获取业务
 	ob, ok := o.GetOrderBusiness(order.OrderType)
 	if !ok {
-		return nil, 0, fmt.Errorf("Order forward OrderType %v not found OrderBusiness", order.OrderType)
+		return nil, 0, fmt.Errorf("orderApi forward OrderType %v not found OrderBusiness", order.OrderType)
 	}
-	return o.forwardOrder(ctx, ob, order, extend, status)
+	return o.forwardOrder(ctx, ob, order, extend, order_model.OrderStatus_Forwarding)
 }
 
 /*
@@ -219,7 +222,7 @@ func (o orderCli) forwardOrderID(ctx context.Context, orderID, uid string, isMq 
 	*order_model.Order, order_model.OrderStatus, error) {
 	unlock, ok, err := o.orderDBLock(ctx, orderID)
 	if err != nil {
-		logger.Log.Error(ctx, "Order Forward orderDBLock err",
+		logger.Log.Error(ctx, "orderApi Forward orderDBLock err",
 			zap.String("orderID", orderID),
 			zap.String("uid", uid),
 			zap.Error(err),
@@ -227,18 +230,18 @@ func (o orderCli) forwardOrderID(ctx context.Context, orderID, uid string, isMq 
 		return nil, 0, err
 	}
 	if !ok {
-		logger.Log.Warn(ctx, "Order Forward orderDBLock is failed",
+		logger.Log.Warn(ctx, "orderApi Forward orderDBLock is failed",
 			zap.String("orderID", orderID),
 			zap.String("uid", uid),
 		)
-		return nil, 0, fmt.Errorf("Order Forward orderDBLock is failed")
+		return nil, 0, fmt.Errorf("orderApi Forward orderDBLock is failed")
 	}
 	defer unlock(ctx)
 
 	// 获取订单数据
 	order, extendText, status, err := o.GetOrder(ctx, orderID, uid)
 	if err != nil {
-		logger.Log.Error(ctx, "Order forward GetOrder err",
+		logger.Log.Error(ctx, "orderApi forward GetOrder err",
 			zap.String("orderID", orderID),
 			zap.String("uid", uid),
 			zap.Error(err),
@@ -252,7 +255,7 @@ func (o orderCli) forwardOrderID(ctx context.Context, orderID, uid string, isMq 
 	// 获取业务
 	ob, ok := o.GetOrderBusiness(order.OrderType)
 	if !ok {
-		return nil, 0, fmt.Errorf("Order forward OrderType %v not found OrderBusiness", order.OrderType)
+		return nil, 0, fmt.Errorf("orderApi forward OrderType %v not found OrderBusiness", order.OrderType)
 	}
 
 	// 解析业务扩展数据
@@ -260,7 +263,7 @@ func (o orderCli) forwardOrderID(ctx context.Context, orderID, uid string, isMq 
 	if extend != nil && extendText != "" {
 		err := sonic.UnmarshalString(extendText, extend)
 		if err != nil {
-			return nil, 0, fmt.Errorf("Order forward Unmarshal extend err. orderID=%v, err=%v", order.OrderID, err)
+			return nil, 0, fmt.Errorf("orderApi forward Unmarshal extend err. orderID=%v, err=%v", order.OrderID, err)
 		}
 	}
 	return o.forwardOrder(ctx, ob, order, extend, status)
@@ -273,7 +276,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 		if status == order_model.OrderStatus_Finish {
 			err := ob.ForwardFinishCallback(ctx, order, extend)
 			if err != nil {
-				logger.Log.Error(ctx, "Order forward call ForwardFinishCallback err",
+				logger.Log.Error(ctx, "orderApi forward call ForwardFinishCallback err",
 					zap.Any("order", order),
 					zap.Any("extend", extend),
 					zap.Int("status", int(status)),
@@ -282,13 +285,13 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 				return nil, 0, err
 			}
 		} else {
-			logger.Log.Warn(ctx, "Order Forward order not is create status",
+			logger.Log.Warn(ctx, "orderApi Forward order not is create status",
 				zap.Any("order", order),
 				zap.Any("status", status),
 			)
 			err := ob.ForwardAbnormalCallback(ctx, order, extend, status)
 			if err != nil {
-				logger.Log.Error(ctx, "Order forward call ForwardAbnormalCallback err",
+				logger.Log.Error(ctx, "orderApi forward call ForwardAbnormalCallback err",
 					zap.Any("order", order),
 					zap.Any("extend", extend),
 					zap.Int("status", int(status)),
@@ -303,7 +306,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 	// 业务检查是否允许推进
 	cancelCause, err := ob.CanForward(ctx, order, extend)
 	if err != nil {
-		logger.Log.Error(ctx, "Order forward call CanForward err",
+		logger.Log.Error(ctx, "orderApi forward call CanForward err",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Any("status", status),
@@ -312,7 +315,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 		return nil, 0, err
 	}
 	if cancelCause != "" {
-		logger.Log.Warn(ctx, "Order forward call CanForward got cancel forward",
+		logger.Log.Warn(ctx, "orderApi forward call CanForward got cancel forward",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Int("status", int(status)),
@@ -321,7 +324,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 		status = order_model.OrderStatus_BusinessCancelForward
 		err = o.UpdateOrderStatus(ctx, order.OrderID, order.Uid, extend, status, cancelCause)
 		if err != nil {
-			logger.Log.Error(ctx, "Order forward cancel set UpdateOrderStatus err",
+			logger.Log.Error(ctx, "orderApi forward cancel set UpdateOrderStatus err",
 				zap.Any("order", order),
 				zap.Any("extend", extend),
 				zap.Int("status", int(status)),
@@ -332,7 +335,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 		}
 		err := ob.ForwardAbnormalCallback(ctx, order, extend, order_model.OrderStatus_BusinessCancelForward)
 		if err != nil {
-			logger.Log.Error(ctx, "Order forward call ForwardAbnormalCallback err",
+			logger.Log.Error(ctx, "orderApi forward call ForwardAbnormalCallback err",
 				zap.Any("order", order),
 				zap.Any("extend", extend),
 				zap.Int("status", int(status)),
@@ -347,7 +350,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 	// 扣款
 	ok, err := o.deductBalance(ctx, order, extend)
 	if err != nil {
-		logger.Log.Error(ctx, "Order forward DeductBalance err",
+		logger.Log.Error(ctx, "orderApi forward DeductBalance err",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Error(err),
@@ -357,13 +360,13 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 	if !ok {
 		status = order_model.OrderStatus_InsufficientBalance
 		// 余额不足, 这里 DeductBalance 已经自动更新了订单状态
-		logger.Log.Warn(ctx, "Order forward DeductBalance is InsufficientBalance",
+		logger.Log.Warn(ctx, "orderApi forward DeductBalance is InsufficientBalance",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 		)
 		err := ob.ForwardAbnormalCallback(ctx, order, extend, status)
 		if err != nil {
-			logger.Log.Error(ctx, "Order forward deductBalance fail and call ForwardAbnormalCallback err",
+			logger.Log.Error(ctx, "orderApi forward deductBalance fail and call ForwardAbnormalCallback err",
 				zap.Any("order", order),
 				zap.Any("extend", extend),
 				zap.Int("status", int(status)),
@@ -378,7 +381,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 	// 发货
 	err = ob.Delivery(ctx, order, extend)
 	if err != nil {
-		logger.Log.Error(ctx, "Order forward Delivery err",
+		logger.Log.Error(ctx, "orderApi forward Delivery err",
 			zap.Any("order", order),
 			zap.Error(err),
 		)
@@ -389,7 +392,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 	// 更新订单状态
 	err = o.UpdateOrderStatus(ctx, order.OrderID, order.Uid, extend, status, "forward finish")
 	if err != nil {
-		logger.Log.Error(ctx, "Order forward finish but set updateOrderStatus err",
+		logger.Log.Error(ctx, "orderApi forward finish but set updateOrderStatus err",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Any("status", status),
@@ -400,7 +403,7 @@ func (o orderCli) forwardOrder(ctx context.Context, ob order_model.OrderBusiness
 
 	err = ob.ForwardFinishCallback(ctx, order, extend)
 	if err != nil {
-		logger.Log.Error(ctx, "Order forward finish but call ForwardAbnormalCallback err",
+		logger.Log.Error(ctx, "orderApi forward finish but call ForwardAbnormalCallback err",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Int("status", int(status)),
@@ -438,7 +441,7 @@ func (o orderCli) deductBalance(ctx context.Context, order *order_model.Order, e
 		status := order_model.OrderStatus_InsufficientBalance
 		err := o.UpdateOrderStatus(ctx, order.OrderID, order.Uid, extend, status, "InsufficientBalance")
 		if err != nil {
-			logger.Log.Error(ctx, "Order deductBalance fail and set UpdateOrderStatus err",
+			logger.Log.Error(ctx, "orderApi deductBalance fail and set UpdateOrderStatus err",
 				zap.Any("order", order),
 				zap.Any("extend", extend),
 				zap.Int("status", int(status)),
@@ -453,7 +456,7 @@ func (o orderCli) deductBalance(ctx context.Context, order *order_model.Order, e
 	status := order_model.OrderStatus_Forwarding
 	err := dao.Dao(order.Uid).SetPayStatus(ctx, order.OrderID, "", byte(order.PayStatus), "Auto Pay")
 	if err != nil {
-		logger.Log.Error(ctx, "Order deductBalance finish but set PayStatus err",
+		logger.Log.Error(ctx, "orderApi deductBalance finish but set PayStatus err",
 			zap.Any("order", order),
 			zap.Any("extend", extend),
 			zap.Int("status", int(status)),
@@ -468,7 +471,7 @@ func (o orderCli) deductBalance(ctx context.Context, order *order_model.Order, e
 func (o orderCli) UpdatePayStatus(ctx context.Context, orderID, uid string, payStatus order_model.OrderPayStatus, remark string) error {
 	err := dao.Dao(uid).SetPayStatus(ctx, orderID, "", byte(payStatus), remark)
 	if err != nil {
-		logger.Log.Error(ctx, "Order UpdatePayStatus call set PayStatus err",
+		logger.Log.Error(ctx, "orderApi UpdatePayStatus call set PayStatus err",
 			zap.Any("orderID", orderID),
 			zap.Any("uid", uid),
 			zap.Int("payStatus", int(payStatus)),
@@ -514,15 +517,15 @@ func (o orderCli) UpdateOrderStatus(ctx context.Context, orderID, uid string, ex
 }
 
 // 根据用户订单号生成单号
-func (o orderCli) GenOIDByUserOID(orderType order_model.OrderType, uid, userOrderID string) string {
+func (o orderCli) GenOIDByUserOID(ctx context.Context, orderType order_model.OrderType, uid, userOrderID string) (string, error) {
 	shard := dao.GenShard(uid)
-	return fmt.Sprintf("order-uoid-%d-%s-%s-%s", orderType, shard, uid, userOrderID)
+	return fmt.Sprintf("order-uoid-%d-%s-%s-%s", orderType, shard, uid, userOrderID), nil
 }
 
 // 根据第三方订单号生成单号
-func (o orderCli) GenOIDByThirdPayOID(orderType order_model.OrderType, uid, thirdPayOid string) string {
+func (o orderCli) GenOIDByThirdPayOID(ctx context.Context, orderType order_model.OrderType, uid, thirdPayOid string) (string, error) {
 	shard := dao.GenShard(uid)
-	return fmt.Sprintf("order-third-%d-%s-%s-%s", orderType, shard, uid, thirdPayOid)
+	return fmt.Sprintf("order-third-%d-%s-%s-%s", orderType, shard, uid, thirdPayOid), nil
 }
 
 // 生成订单号
