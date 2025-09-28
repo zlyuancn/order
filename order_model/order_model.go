@@ -5,10 +5,10 @@ import (
 )
 
 // 订单类型
-type OrderType int
+type OrderType int16
 
 // 订单状态
-type OrderStatus int
+type OrderStatus byte
 
 const (
 	OrderStatus_Forwarding OrderStatus = 1 // 已创建/推进中
@@ -21,7 +21,7 @@ const (
 )
 
 // 订单使用的支付类型
-type OrderPayType int
+type OrderPayType int16
 
 const (
 	OrderPayType_None   OrderPayType = 0 // 无需支付
@@ -30,7 +30,7 @@ const (
 )
 
 // 订单支付状态
-type OrderPayStatus int
+type OrderPayStatus byte
 
 const (
 	OrderPayStatus_None    OrderPayStatus = 0 // 未支付

@@ -229,10 +229,10 @@ type RPC interface {
 type Model struct {
 	ID          uint   `db:"id"`
 	OrderID     string `db:"oid"`      // 订单id
-	OrderType   byte   `db:"o_type"`   // 订单类型
+	OrderType   int16  `db:"o_type"`   // 订单类型
 	OrderStatus byte   `db:"o_status"` // 订单状态
 
-	PayType         byte   `db:"pay_type"`      // 支付类型
+	PayType         int16  `db:"pay_type"`      // 支付类型
 	PayStatus       byte   `db:"pay_status"`    // 支付状态
 	PayAmount       uint32 `db:"pay_amount"`    // 支付金额, 单位分
 	ThirdPayOrderID string `db:"third_pay_oid"` // 第三方支付订单id

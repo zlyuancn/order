@@ -77,9 +77,9 @@ func (o orderCli) CreateOrder(ctx context.Context, order *order_model.Order, ext
 func (orderCli) order2DBModel(order *order_model.Order, extend interface{}, status order_model.OrderStatus) (*dao.Model, error) {
 	v := &dao.Model{
 		OrderID:         order.OrderID,
-		OrderType:       byte(order.OrderType),
+		OrderType:       int16(order.OrderType),
 		OrderStatus:     byte(status),
-		PayType:         byte(order.PayType),
+		PayType:         int16(order.PayType),
 		PayStatus:       byte(order.PayStatus),
 		PayAmount:       order.PayAmount,
 		ThirdPayOrderID: order.ThirdPayOrderID,
